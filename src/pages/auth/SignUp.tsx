@@ -25,47 +25,43 @@ export const SignUp = () => {
     setIsSubmitting(true);
 
     try {
-      // In a real app with Supabase Auth, we'd use supabase.auth.signUp
-      // For this demo/integrated flow, we'll simulate account creation 
-      // but still persist the profile so it can be looked up during sign in
-      
-      const { data: existingUser } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('email', formData.email)
-        .single();
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.name,
+            phone: formData.phone,
+            role: formData.role
+          }
+        }
+      });
 
-      if (existingUser) {
-        alert('An account with this email already exists. Please sign in.');
-        navigate('/signin');
-        return;
+      if (authError) throw authError;
+
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .insert([{
+            id: authData.user.id,
+            email: formData.email,
+            name: formData.name,
+            phone: formData.phone,
+            role: formData.role
+          }]);
+
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+          // We don't necessarily want to block the user if the profile insert fails
+          // but they are signed up in Auth.
+        }
       }
 
-      // Generate a mock ID for the user since we aren't using Supabase Auth yet
-      const mockId = crypto.randomUUID();
-
-      const { error } = await supabase
-        .from('user_profiles')
-        .insert([{
-          id: mockId,
-          email: formData.email,
-          name: formData.name,
-          phone: formData.phone,
-          role: formData.role
-        }]);
-
-      if (error) {
-        // If it's a constraint error because we aren't using real auth IDs, we might need to skip RLS or handle it
-        console.error('Supabase error saving profile:', error);
-      }
-
-      signIn(formData.email, formData.role, formData.name, formData.phone);
+      alert('Successfully created account! Please check your email for a confirmation link.');
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Signup error:', error);
-      // Still sign in locally so the demo works even if Supabase fails
-      signIn(formData.email, formData.role, formData.name, formData.phone);
-      navigate('/');
+      alert(error.message || 'An error occurred during signup.');
     } finally {
       setIsSubmitting(false);
     }

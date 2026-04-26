@@ -20,27 +20,17 @@ export const SignIn = () => {
     setIsSubmitting(true);
 
     try {
-      // First check if user exists in our DB to get their real role
-      const { data: profile, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('email', email)
-        .maybeSingle();
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-      if (profile) {
-        signIn(email, profile.role, profile.name, profile.phone);
-      } else {
-        // Fallback or alert if user doesn't exist? 
-        // For a smoother demo, we'll allow sign in but default to 'renter' 
-        // if they aren't in the DB yet (though they should be after signing up)
-        signIn(email, 'renter');
-      }
+      if (error) throw error;
       
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error('SignIn error:', error);
-      signIn(email, 'renter');
-      navigate('/');
+      alert(error.message || 'Invalid login credentials');
     } finally {
       setIsSubmitting(false);
     }

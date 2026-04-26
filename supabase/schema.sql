@@ -369,34 +369,3 @@ CREATE TRIGGER update_property_apps_updated_at BEFORE UPDATE ON property_applica
 CREATE TRIGGER update_neighborhoods_updated_at BEFORE UPDATE ON neighborhoods FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_role_change_requests_updated_at BEFORE UPDATE ON role_change_requests FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_blogs_updated_at BEFORE UPDATE ON blogs FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
-
--- SEED DATA
--- Note: Replace local image paths with actual files in public/images/neighborhoods/
-INSERT INTO neighborhoods (name, description, image_url, avg_price, amenities)
-VALUES 
-('Kilimani', 'A vibrant residential and commercial hub known for its trendy cafes and malls.', '/images/neighborhoods/kilimani.jpg', 15000000, '{"Yaya Centre", "French School", "Kilimani Police Station"}'),
-('Westlands', 'The social heart of Nairobi, offering premium office spaces and luxury hotels.', '/images/neighborhoods/westlands.jpg', 25000000, '{"Sarit Centre", "Westgate Mall", "Global Trade Centre"}'),
-('Kapsoya', 'A serene and rapidly growing residential suburb in Eldoret.', '/images/neighborhoods/kapsoya.jpg', 12000000, '{"Rupas Mall", "Eldoret Hospital", "Reeves School"}'),
-('Elgon View', 'The most prestigious residential address in Eldoret.', '/images/neighborhoods/elgon_view.jpg', 35000000, '{"Eldoret Club", "Hill School", "Poa Place"}'),
-('Runda', 'Nairobi''s most exclusive diplomatic and residential enclave with expansive gardens.', '/images/neighborhoods/runda.jpg', 150000000, '{"UN Headquarters", "Village Market", "Potterhouse School"}'),
-('Karen', 'An upscale leafy suburb offering a countryside feel with high-end luxury estates.', '/images/neighborhoods/karen.jpg', 120000000, '{"The Hub Karen", "Karen Country Club", "Giraffe Centre"}'),
-('Nyali', 'The premier coastal residential area in Mombasa, blending beach life with luxury.', '/images/neighborhoods/nyali.jpg', 45000000, '{"City Mall", "Nyali Golf Club", "Public Beach"}');
-
--- SEED ANALYTICS DATA (Mocking some activity)
-INSERT INTO payments (amount, purpose, status, created_at)
-VALUES 
-(15000, 'listing_verification', 'completed', NOW() - INTERVAL '5 days'),
-(25000, 'premium_listing', 'completed', NOW() - INTERVAL '12 days'),
-(10000, 'agent_subscription', 'completed', NOW() - INTERVAL '20 days'),
-(45000, 'bulk_listing_fee', 'completed', NOW() - INTERVAL '45 days');
-
-INSERT INTO listing_views (listing_id, viewed_at)
-SELECT id, NOW() - (random() * INTERVAL '30 days')
-FROM listings
-LIMIT 50;
-
--- ADMIN SEED
--- Note: Using a fixed UUID for the admin for predictability in demo
-INSERT INTO user_profiles (id, name, email, role, is_verified)
-VALUES ('00000000-0000-0000-0000-000000000000', 'System Admin', 'maverickfx111@gmail.com', 'admin', true)
-ON CONFLICT (email) DO UPDATE SET role = 'admin';

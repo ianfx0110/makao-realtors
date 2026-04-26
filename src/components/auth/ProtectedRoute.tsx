@@ -8,8 +8,16 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-stone-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-accent"></div>
+      </div>
+    );
+  }
 
   if (!user) {
     // Redirect to signin if not authenticated
