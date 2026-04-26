@@ -1,0 +1,10 @@
+{
+  "name": "Makao Realtors",
+  "description": "Elevating Kenyan Living - Premium real estate locator and listing platform in Kenya. Discover exclusive properties and neighborhood insights across all 47 counties.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "majorCapabilities": []
+}
