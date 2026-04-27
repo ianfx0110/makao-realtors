@@ -173,7 +173,34 @@ CREATE TABLE leads (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 14. Neighborhoods Table
+-- 13. Consultations Table (New)
+CREATE TABLE consultations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
+  expert_type TEXT CHECK (expert_type IN ('legal', 'financial', 'real_estate')),
+  scheduled_at TIMESTAMPTZ NOT NULL,
+  topic TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
+  meeting_link TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 14. Maintenance Requests (New)
+CREATE TABLE maintenance_requests (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  listing_id UUID REFERENCES listings(id) ON DELETE CASCADE,
+  tenant_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
+  subject TEXT NOT NULL,
+  description TEXT NOT NULL,
+  priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'emergency')),
+  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'scheduled', 'in_progress', 'resolved', 'closed')),
+  images TEXT[],
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 15. Neighborhoods Table
 CREATE TABLE neighborhoods (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL UNIQUE,
@@ -278,6 +305,8 @@ ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE listing_views ENABLE ROW LEVEL SECURITY;
 ALTER TABLE neighborhoods ENABLE ROW LEVEL SECURITY;
 ALTER TABLE blogs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE consultations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE maintenance_requests ENABLE ROW LEVEL SECURITY;
 
 -- 22. Role Change Requests Table
 CREATE TABLE role_change_requests (
@@ -298,6 +327,7 @@ ALTER TABLE role_change_requests ENABLE ROW LEVEL SECURITY;
 -- User Profiles: Users can view all, but only update their own
 CREATE POLICY "Public profiles are viewable by everyone" ON user_profiles FOR SELECT USING (true);
 CREATE POLICY "Users can update own profile" ON user_profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can insert own profile" ON user_profiles FOR INSERT WITH CHECK (true); -- Relaxed for signup flow
 
 -- Listings: Everyone can view, but only owners/admins can manage
 CREATE POLICY "Listings are viewable by everyone" ON listings FOR SELECT USING (true);
@@ -327,6 +357,11 @@ CREATE POLICY "Users manage own mortgage_apps" ON mortgage_applications FOR ALL 
 CREATE POLICY "Users manage own tours" ON property_tours FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users manage own favorites" ON saved_properties FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users manage own applications" ON property_applications FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users manage own consultations" ON consultations FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users manage own maintenance" ON maintenance_requests FOR ALL USING (auth.uid() = tenant_id);
+CREATE POLICY "Owners see maintenance for their properties" ON maintenance_requests FOR SELECT USING (
+  EXISTS (SELECT 1 FROM listings WHERE id = maintenance_requests.listing_id AND owner_id = auth.uid())
+);
 
 -- Role Change Requests Policies
 CREATE POLICY "Users view own role requests" ON role_change_requests FOR SELECT USING (auth.uid() = user_id);
@@ -369,3 +404,30 @@ CREATE TRIGGER update_property_apps_updated_at BEFORE UPDATE ON property_applica
 CREATE TRIGGER update_neighborhoods_updated_at BEFORE UPDATE ON neighborhoods FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_role_change_requests_updated_at BEFORE UPDATE ON role_change_requests FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_blogs_updated_at BEFORE UPDATE ON blogs FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER update_consultations_updated_at BEFORE UPDATE ON consultations FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER update_maintenance_updated_at BEFORE UPDATE ON maintenance_requests FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- New: Trigger to handle user profile creation on signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.user_profiles (id, name, email, role)
+  VALUES (
+    new.id, 
+    COALESCE(new.raw_user_meta_data->>'full_name', new.email), 
+    new.email, 
+    COALESCE(new.raw_user_meta_data->>'role', 'renter')
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Check if trigger already exists to avoid errors
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'on_auth_user_created') THEN
+    CREATE TRIGGER on_auth_user_created
+      AFTER INSERT ON auth.users
+      FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+  END IF;
+END $$;

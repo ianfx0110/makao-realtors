@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { MessageCircle, Send, Phone, Mail } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 export const Support = () => {
   return (
@@ -42,19 +43,46 @@ export const Support = () => {
 
         <div className="bg-stone-900 text-white p-10 rounded-[3rem] space-y-6">
           <h2 className="text-2xl font-serif">Submit a Ticket</h2>
-          <div className="space-y-4">
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            const form = e.target as HTMLFormElement;
+            const subject = (form.elements.namedItem('subject') as HTMLInputElement).value;
+            const message = (form.elements.namedItem('message') as HTMLTextAreaElement).value;
+            
+            try {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (!user) {
+                alert('Please sign in to submit a ticket.');
+                return;
+              }
+
+              const { error } = await supabase.from('support_tickets').insert({
+                user_id: user.id,
+                subject,
+                message,
+                status: 'open'
+              });
+
+              if (error) throw error;
+              alert('Ticket submitted successfully! We will get back to you soon.');
+              form.reset();
+            } catch (err: any) {
+              console.error('Support ticket error:', err);
+              alert(err.message || 'Failed to submit ticket.');
+            }
+          }} className="space-y-4">
             <div>
               <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400 block mb-2">Subject</label>
-              <input className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-brand-accent" placeholder="What is your issue?" />
+              <input name="subject" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-brand-accent text-white" placeholder="What is your issue?" />
             </div>
             <div>
               <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400 block mb-2">Message</label>
-              <textarea rows={4} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-brand-accent" placeholder="Describe your issue in detail..." />
+              <textarea name="message" required rows={4} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-brand-accent text-white" placeholder="Describe your issue in detail..." />
             </div>
-            <button className="bg-brand-accent text-white px-8 py-3 rounded-full font-bold uppercase text-[10px] tracking-widest hover:bg-white hover:text-brand-accent transition-all">
+            <button type="submit" className="bg-brand-accent text-white px-8 py-3 rounded-full font-bold uppercase text-[10px] tracking-widest hover:bg-white hover:text-brand-accent transition-all">
               Submit Ticket
             </button>
-          </div>
+          </form>
         </div>
       </motion.div>
     </div>

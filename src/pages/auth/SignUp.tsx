@@ -40,15 +40,18 @@ export const SignUp = () => {
       if (authError) throw authError;
 
       if (authData.user) {
+        // We use upsert here to be safe: it works if trigger already created it
+        // or if trigger failed/doesn't exist.
         const { error: profileError } = await supabase
           .from('user_profiles')
-          .insert([{
+          .upsert({
             id: authData.user.id,
             email: formData.email,
             name: formData.name,
             phone: formData.phone,
-            role: formData.role
-          }]);
+            role: formData.role,
+            updated_at: new Date().toISOString()
+          });
 
         if (profileError) {
           console.error('Error creating profile:', profileError);

@@ -26,6 +26,8 @@ export const CreateListing = () => {
     beds: 1,
     baths: 1,
     area: '',
+    floor: '',
+    furnished: false,
     description: '',
     images: ['', '', ''],
     features: ''
@@ -61,6 +63,8 @@ export const CreateListing = () => {
         beds: Number(formData.beds),
         baths: Number(formData.baths),
         sqft: Number(formData.area),
+        floor_level: formData.floor ? Number(formData.floor) : undefined,
+        furnished: formData.furnished,
         images: activeImages,
         features: formData.features.split(',').map(f => f.trim()),
         virtualTourUrl: '',
@@ -207,6 +211,26 @@ export const CreateListing = () => {
                   onChange={(e) => setFormData({...formData, baths: parseInt(e.target.value)})}
                   className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 outline-none"
                 />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase font-bold text-stone-400 block mb-2">Floor Level</label>
+                <input 
+                  type="number" 
+                  value={formData.floor}
+                  onChange={(e) => setFormData({...formData, floor: e.target.value})}
+                  placeholder="e.g. 5"
+                  className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 outline-none"
+                />
+              </div>
+              <div className="flex items-center gap-4 py-3">
+                <input 
+                  type="checkbox" 
+                  id="furnished"
+                  checked={formData.furnished}
+                  onChange={(e) => setFormData({...formData, furnished: e.target.checked})}
+                  className="w-5 h-5 accent-brand-accent"
+                />
+                <label htmlFor="furnished" className="text-sm font-bold text-stone-600">Furnished</label>
               </div>
               <div>
                 <label className="text-[10px] uppercase font-bold text-stone-400 block mb-2">Features (comma separated)</label>

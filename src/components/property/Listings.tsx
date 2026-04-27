@@ -27,12 +27,17 @@ export const Listings = () => {
     return 'all';
   };
 
+  const [showDetailedFilters, setShowDetailedFilters] = React.useState(false);
   const [filters, setFilters] = React.useState({
     search: querySearch,
     county: 'all',
     place: 'all',
     type: 'all',
     status: getDefaultStatus(),
+    minPrice: '',
+    maxPrice: '',
+    minSqft: '',
+    maxSqft: '',
   });
 
   React.useEffect(() => {
@@ -41,15 +46,28 @@ export const Listings = () => {
     }
   }, [querySearch]);
 
+  const fetchListings = async () => {
+    setLoading(true);
+    const data = await listingService.getListings({
+      search: filters.search,
+      county: filters.county,
+      type: filters.type,
+      status: filters.status,
+      minPrice: filters.minPrice ? Number(filters.minPrice) : undefined,
+      maxPrice: filters.maxPrice ? Number(filters.maxPrice) : undefined,
+      minArea: filters.minSqft ? Number(filters.minSqft) : undefined,
+      maxArea: filters.maxSqft ? Number(filters.maxSqft) : undefined,
+    });
+    setProperties(data);
+    setLoading(false);
+  };
+
   React.useEffect(() => {
-    const fetchListings = async () => {
-      setLoading(true);
-      const data = await listingService.getListings();
-      setProperties(data);
-      setLoading(false);
-    };
     fetchListings();
-  }, []);
+  }, [filters.county, filters.type, filters.status]); // Only re-fetch on major category changes for now, or use a "Apply" button
+
+  // For immediate search/price/sqft updates, we can either debounce or use an Apply button
+  // Let's add an Apply button for the detailed filters to prevent too many requests.
 
   React.useEffect(() => {
     setFilters(prev => ({ ...prev, status: getDefaultStatus() }));
@@ -66,13 +84,19 @@ export const Listings = () => {
     const matchesCounty = filters.county === 'all' || p.location.includes(filters.county);
     const matchesType = filters.type === 'all' || p.type === filters.type;
     const matchesStatus = filters.status === 'all' || p.status === filters.status;
-    return matchesSearch && matchesCounty && matchesType && matchesStatus;
+    
+    // Client-side fallback or additional filtering
+    const matchesPrice = (!filters.minPrice || p.price >= Number(filters.minPrice)) && 
+                         (!filters.maxPrice || p.price <= Number(filters.maxPrice));
+    const matchesSqft = (!filters.minSqft || p.sqft >= Number(filters.minSqft)) && 
+                        (!filters.maxSqft || p.sqft <= Number(filters.maxSqft));
+
+    return matchesSearch && matchesCounty && matchesType && matchesStatus && matchesPrice && matchesSqft;
   });
 
   return (
     <div className="min-h-screen bg-stone-50 pt-32 pb-20">
       <div className="max-w-7xl mx-auto px-6">
-        {/* ... (header remains similar) ... */}
         <header className="mb-12">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
             <div>
@@ -91,9 +115,15 @@ export const Listings = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 items-center">
-            <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-full px-4 py-2 hover:border-brand-accent transition-colors cursor-pointer">
-              <SlidersHorizontal size={14} className="text-brand-accent" />
+          <div className="flex flex-wrap gap-3 items-center mb-6">
+            <div 
+              onClick={() => setShowDetailedFilters(!showDetailedFilters)}
+              className={cn(
+                "flex items-center gap-2 border rounded-full px-4 py-2 transition-colors cursor-pointer",
+                showDetailedFilters ? "bg-brand-accent border-brand-accent text-white" : "bg-white border-stone-200 hover:border-brand-accent text-stone-900"
+              )}
+            >
+              <SlidersHorizontal size={14} className={showDetailedFilters ? "text-white" : "text-brand-accent"} />
               <span className="text-[10px] font-bold uppercase tracking-widest">Filters</span>
             </div>
 
@@ -147,6 +177,61 @@ export const Listings = () => {
               ))}
             </div>
           </div>
+
+          {showDetailedFilters && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              className="bg-white border border-stone-200 rounded-3xl p-6 mb-8 overflow-hidden grid grid-cols-1 md:grid-cols-4 gap-6"
+            >
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Price Range (KES)</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="number" 
+                    placeholder="Min" 
+                    value={filters.minPrice}
+                    onChange={(e) => setFilters({...filters, minPrice: e.target.value})}
+                    className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-accent/10"
+                  />
+                  <input 
+                    type="number" 
+                    placeholder="Max" 
+                    value={filters.maxPrice}
+                    onChange={(e) => setFilters({...filters, maxPrice: e.target.value})}
+                    className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-accent/10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Size (Sqft)</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="number" 
+                    placeholder="Min" 
+                    value={filters.minSqft}
+                    onChange={(e) => setFilters({...filters, minSqft: e.target.value})}
+                    className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-accent/10"
+                  />
+                  <input 
+                    type="number" 
+                    placeholder="Max" 
+                    value={filters.maxSqft}
+                    onChange={(e) => setFilters({...filters, maxSqft: e.target.value})}
+                    className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-accent/10"
+                  />
+                </div>
+              </div>
+              <div className="md:col-span-2 flex items-end">
+                <button 
+                  onClick={fetchListings}
+                  className="w-full bg-brand-primary text-white rounded-xl py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-colors"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </motion.div>
+          )}
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -184,7 +269,26 @@ export const Listings = () => {
                       <span className="text-[10px] text-stone-400 mr-1 uppercase">KES</span>
                       {property.price.toLocaleString()}
                     </div>
-                    <button className="text-stone-300 hover:text-brand-accent p-2 rounded-xl transition-all">
+                    <button 
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        try {
+                          const { data: { user: currentUser } } = await supabase.auth.getUser();
+                          if (!currentUser) {
+                            alert('Please sign in to save properties.');
+                            return;
+                          }
+                          await supabase
+                            .from('saved_properties')
+                            .upsert({ user_id: currentUser.id, listing_id: property.id });
+                          alert('Property added to favorites!');
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                      className="text-stone-300 hover:text-red-500 p-2 rounded-xl transition-all"
+                    >
                       <Heart size={18} />
                     </button>
                   </div>

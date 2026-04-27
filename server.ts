@@ -2,6 +2,9 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,17 +16,30 @@ async function startServer() {
   // JSON middleware
   app.use(express.json());
 
-  // API Health Check
+  // API Routes
   app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Makao Realtors API is running' });
+    res.json({ 
+      status: 'ok', 
+      message: 'Makao Realtors API is running',
+      environment: process.env.NODE_ENV || 'development',
+      database: process.env.VITE_SUPABASE_URL ? 'configured' : 'missing'
+    });
   });
 
-  // Example API route for Supabase data (optional proxy or custom logic)
-  app.get('/api/metadata', (req, res) => {
+  // Example of a backend-only logic route
+  app.get('/api/config', (req, res) => {
     res.json({
-      name: 'Makao Realtors',
-      version: '1.0.0',
-      description: 'Elevating the Kenyan Living Experience'
+      google_analytics_id: process.env.VITE_GA_ID || null,
+      support_email: 'support@makao.co.ke'
+    });
+  });
+
+  // Proxy-like route for listings metadata (demonstrating backend capability)
+  app.get('/api/stats', (req, res) => {
+    res.json({
+      active_listings: 120,
+      verified_users: 450,
+      neighborhoods: 47
     });
   });
 
@@ -44,6 +60,9 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running at http://localhost:${PORT}`);
+    if (!process.env.VITE_SUPABASE_URL) {
+      console.warn('WARNING: VITE_SUPABASE_URL is not set in environment variables.');
+    }
   });
 }
 

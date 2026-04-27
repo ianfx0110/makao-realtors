@@ -14,6 +14,7 @@ import {
   Layers
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { supabase } from '../../lib/supabase';
 import { listingService } from '../../services/listingService';
 import { Property } from '../../types';
 import { MortgageCalculator } from './MortgageCalculator';
@@ -38,6 +39,52 @@ export const PropertyDetails = () => {
     };
     fetch();
   }, [id]);
+
+  const [isSaved, setIsSaved] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkSaved = async () => {
+      if (id) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data } = await supabase
+            .from('saved_properties')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('listing_id', id)
+            .maybeSingle();
+          setIsSaved(!!data);
+        }
+      }
+    };
+    checkSaved();
+  }, [id]);
+
+  const toggleSave = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert('Please sign in to save properties.');
+        return;
+      }
+
+      if (isSaved) {
+        await supabase
+          .from('saved_properties')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('listing_id', id);
+        setIsSaved(false);
+      } else {
+        await supabase
+          .from('saved_properties')
+          .insert({ user_id: user.id, listing_id: id });
+        setIsSaved(true);
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+    }
+  };
 
   if (loading) {
     return (
@@ -87,7 +134,12 @@ export const PropertyDetails = () => {
               </div>
               <div className="flex gap-2">
                 <button className="p-3 border hover:border-brand-accent hover:text-brand-accent transition-all text-gray-400"><Share2 size={20} /></button>
-                <button className="p-3 border hover:border-brand-accent hover:text-brand-accent transition-all text-gray-400"><Heart size={20} /></button>
+                <button 
+                  onClick={toggleSave}
+                  className={`p-3 border transition-all ${isSaved ? 'bg-red-50 border-red-500 text-red-500' : 'hover:border-brand-accent hover:text-brand-accent text-gray-400'}`}
+                >
+                  <Heart size={20} className={isSaved ? 'fill-current' : ''} />
+                </button>
               </div>
             </div>
           </div>
@@ -237,10 +289,108 @@ export const PropertyDetails = () => {
                   <button className="w-full py-4 bg-brand-accent text-brand-primary text-xs uppercase tracking-[0.2em] font-bold flex items-center justify-center gap-2 hover:bg-white transition-all">
                     <Phone size={14} /> {property.landlord.phone}
                   </button>
-                  <button className="w-full py-4 border border-white/20 text-white text-xs uppercase tracking-[0.2em] font-bold flex items-center justify-center gap-2 hover:bg-white hover:text-brand-primary transition-all">
-                    <Mail size={14} /> Send Message
+                  <button 
+                    onClick={async () => {
+                      const date = prompt("Enter preferred date and time (YYYY-MM-DD HH:MM):");
+                      if (!date) return;
+                      
+                      try {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (!user) {
+                          alert('Please sign in to schedule a tour.');
+                          return;
+                        }
+
+                        const { error } = await supabase.from('property_tours').insert({
+                          user_id: user.id,
+                          listing_id: property.id,
+                          scheduled_at: new Date(date).toISOString(),
+                          status: 'scheduled'
+                        });
+
+                        if (error) throw error;
+                        alert('Your tour has been scheduled! Check your dashboard for updates.');
+                      } catch (err: any) {
+                        console.error('Tour error:', err);
+                        alert(err.message || 'Failed to schedule tour.');
+                      }
+                    }}
+                    className="w-full py-4 border border-white/20 text-white text-xs uppercase tracking-[0.2em] font-bold flex items-center justify-center gap-2 hover:bg-white hover:text-brand-primary transition-all"
+                  >
+                    <Calendar size={14} /> Schedule Tour
+                  </button>
+                  <button 
+                    onClick={async () => {
+                      try {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (!user) {
+                          alert('Please sign in to apply.');
+                          return;
+                        }
+
+                        const { error } = await supabase.from('property_applications').insert({
+                          user_id: user.id,
+                          listing_id: property.id,
+                          status: 'pending'
+                        });
+
+                        if (error) throw error;
+                        alert('Application submitted successfully!');
+                      } catch (err: any) {
+                        console.error('Application error:', err);
+                        alert(err.message || 'Failed to submit application.');
+                      }
+                    }}
+                    className="w-full py-4 border border-white/20 text-white text-xs uppercase tracking-[0.2em] font-bold flex items-center justify-center gap-2 hover:bg-white hover:text-brand-primary transition-all"
+                  >
+                    <CheckCircle2 size={14} /> Submit Application
                   </button>
                 </div>
+              </div>
+
+              <div className="bg-white border border-stone-200 p-8 space-y-4 shadow-sm">
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Review this Property</h4>
+                <div className="flex gap-2 mb-4">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <button key={s} className="text-stone-300 hover:text-brand-accent transition-colors">
+                      <Heart size={20} className="fill-stone-100" />
+                    </button>
+                  ))}
+                </div>
+                <textarea 
+                  placeholder="Share your thoughts..." 
+                  className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-brand-accent/10"
+                />
+                <button 
+                  onClick={async (e) => {
+                    const btn = e.currentTarget;
+                    const comment = btn.previousElementSibling as HTMLTextAreaElement;
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (!user) {
+                        alert('Please sign in to review.');
+                        return;
+                      }
+
+                      const { error } = await supabase.from('reviews').insert({
+                        listing_id: property.id,
+                        reviewer_id: user.id,
+                        rating: 5, // Simplified for now
+                        comment: comment.value
+                      });
+
+                      if (error) throw error;
+                      alert('Review submitted!');
+                      comment.value = '';
+                    } catch (err: any) {
+                      console.error('Review error:', err);
+                      alert(err.message || 'Failed to submit review.');
+                    }
+                  }}
+                  className="w-full py-3 bg-brand-primary text-white text-[10px] font-bold uppercase tracking-widest rounded-xl"
+                >
+                  Post Review
+                </button>
               </div>
 
               {/* Calculator Sidebar */}
