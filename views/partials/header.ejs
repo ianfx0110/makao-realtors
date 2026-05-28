@@ -166,6 +166,9 @@ if (user) {
         </ul>
         
         <div class="header-actions">
+            <a href="https://wa.me/254115481162" target="_blank" class="btn btn-secondary btn-sm" title="WhatsApp Support">
+                <i class="fab fa-whatsapp"></i>
+            </a>
             <% if (user) { %>
                 <div class="user-header-profile" style="display: flex; align-items: center; gap: 12px;">
                     <span style="font-size: 13px; font-weight: 600;"><%= user.full_name %></span>
@@ -208,6 +211,9 @@ if (user) {
         </ul>
         
         <div class="mobile-menu-footer">
+            <a href="https://wa.me/254115481162" target="_blank" class="btn btn-secondary btn-sm" style="width: 100%;">
+                <i class="fab fa-whatsapp"></i> WhatsApp Support
+            </a>
             <% if (user) { %>
                 <div style="font-size: 13px;">
                     Logged in as <strong><%= user.full_name %></strong> (<%= user.role %>)

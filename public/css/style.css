@@ -282,75 +282,77 @@ img {
     display: none;
 }
 
-/* A. DESKTOP LAYOUT (> 1200px): Left Sidebar, no top-nav header */
+/* A. DESKTOP LAYOUT (> 1200px): Top Header with Navigation Above */
 @media (min-width: 1201px) {
     .desktop-sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        width: var(--desktop-sidebar-width);
-        background: var(--bg-surface-glass);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border-right: 1px solid var(--border-color);
-        display: flex;
-        flex-direction: column;
-        padding: 30px 20px;
-        z-index: 100;
-        box-shadow: var(--shadow-glass);
-    }
-    
-    .desktop-sidebar .sidebar-logo-section {
-        margin-bottom: 40px;
-        padding: 0 10px;
-        display: flex;
-        justify-content: center;
-    }
-    
-    .desktop-sidebar .sidebar-nav {
-        list-style: none;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-    
-    .desktop-sidebar .sidebar-nav-item a {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding: 12px 18px;
-        border-radius: var(--border-radius-sm);
-        color: var(--color-text-secondary);
-        font-family: var(--font-heading);
-        font-weight: 600;
-        font-size: 15px;
-    }
-    
-    .desktop-sidebar .sidebar-nav-item a:hover,
-    .desktop-sidebar .sidebar-nav-item.active a {
-        background: var(--color-primary-light);
-        color: var(--color-primary);
-    }
-    
-    .desktop-sidebar .sidebar-footer {
-        margin-top: auto;
-        padding: 15px 10px 0 10px;
-        border-top: 1px solid var(--border-color);
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .app-main-content {
-        margin-left: var(--desktop-sidebar-width);
-        margin-top: 0; /* Reset top header spacing */
-        padding: 40px 48px;
-        max-width: calc(100% - var(--desktop-sidebar-width));
+        display: none;
     }
 
     .laptop-tablet-header {
-        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--header-height);
+        background: var(--bg-surface-glass);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 32px;
+        z-index: 100;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .laptop-tablet-header .header-logo {
+        height: 42px;
+        display: flex;
+        align-items: center;
+        filter: none !important;
+    }
+
+    .laptop-tablet-header .header-logo img {
+        filter: none !important;
+    }
+
+    .laptop-tablet-header .header-nav {
+        list-style: none;
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        flex: 1;
+        margin-left: 40px;
+    }
+
+    .laptop-tablet-header .header-nav-item a {
+        color: var(--color-text-secondary);
+        font-family: var(--font-heading);
+        font-weight: 600;
+        font-size: 14px;
+        padding: 10px 16px;
+        border-radius: var(--border-radius-sm);
+        transition: var(--transition-smooth);
+    }
+
+    .laptop-tablet-header .header-nav-item a:hover,
+    .laptop-tablet-header .header-nav-item.active a {
+        background: var(--color-primary-light);
+        color: var(--color-primary);
+    }
+
+    .laptop-tablet-header .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-left: auto;
+    }
+
+    .app-main-content {
+        margin-top: var(--header-height);
+        margin-left: 0;
+        padding: 40px 48px;
     }
 }
 
@@ -382,6 +384,11 @@ img {
         height: 42px;
         display: flex;
         align-items: center;
+        filter: none !important;
+    }
+
+    .laptop-tablet-header .header-logo img {
+        filter: none !important;
     }
 
     .laptop-tablet-header .header-nav {
@@ -449,6 +456,11 @@ img {
         height: 32px;
         display: flex;
         align-items: center;
+        filter: none !important;
+    }
+
+    .mobile-top-bar .header-logo img {
+        filter: none !important;
     }
 
     /* Spinning Hamburger Menu Button */
