@@ -1,0 +1,6 @@
+{
+  "name": "Makao Realtors",
+  "description": "Premium Kenyan housing brokerage platform connecting landlords, sellers, renters, and buyers with automated M-PESA payment flows, admin controls, and server-side AI-powered listing optimization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
